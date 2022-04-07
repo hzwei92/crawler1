@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
-import * as puppeteer from 'puppeteer';
+import * as rp from 'request-promise';
+import * as cheerio from 'cheerio';
 
 export async function main(stopAfter: number, startUrl?: string) {
   const queue: string[] = [startUrl || process.argv[2]];
@@ -16,9 +17,6 @@ export async function main(stopAfter: number, startUrl?: string) {
   })
   
   const crawl = async (cralwerIndex: number) => {
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    
     while (queue.length) {
       if (stopAfter && Object.keys(visited).length >= stopAfter) {
         return Object.keys(visited);
@@ -26,17 +24,26 @@ export async function main(stopAfter: number, startUrl?: string) {
       const url = queue.shift();
       if (url && !visited[url]) {
         visited[url] = true;
+
         console.log(url)
-        await page.goto(url, {
-          timeout: 60 * 1000,
-        });
-        const hrefs = await page.$$eval('[href]', els => els.map((el: any) => el.href));
-        hrefs.forEach(href => {
+        let html = ''
+        try {
+          html = await rp(url);
+        }
+        catch (e) {
+
+        }
+
+        const $ = cheerio.load(html);
+
+        $('[href]').toArray().forEach(el => {
+          const href = el.attribs['href'];
           if (href && typeof href === 'string' && href.match(/^http*/)) {
-            console.log('  ' + href)
+            console.log('  ' + href);
             queue.push(href);
           }
-        });
+        })
+
         if (cralwerIndex === 0 && crawlerCount < crawlerMaxCount) {
           eventEmitter.emit('go')
         }

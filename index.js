@@ -38,7 +38,8 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 exports.__esModule = true;
 exports.main = void 0;
 var events_1 = require("events");
-var puppeteer = require("puppeteer");
+var rp = require("request-promise");
+var cheerio = require("cheerio");
 function main(stopAfter, startUrl) {
     return __awaiter(this, void 0, void 0, function () {
         var queue, visited, crawlerMaxCount, crawlerCount, eventEmitter, crawl;
@@ -56,34 +57,33 @@ function main(stopAfter, startUrl) {
                 }
             });
             crawl = function (cralwerIndex) { return __awaiter(_this, void 0, void 0, function () {
-                var browser, page, url, hrefs;
+                var url, html, e_1, $, els;
                 return __generator(this, function (_a) {
                     switch (_a.label) {
-                        case 0: return [4 /*yield*/, puppeteer.launch()];
-                        case 1:
-                            browser = _a.sent();
-                            return [4 /*yield*/, browser.newPage()];
-                        case 2:
-                            page = _a.sent();
-                            _a.label = 3;
-                        case 3:
-                            if (!queue.length) return [3 /*break*/, 7];
+                        case 0:
+                            if (!queue.length) return [3 /*break*/, 6];
                             if (stopAfter && Object.keys(visited).length >= stopAfter) {
                                 return [2 /*return*/, Object.keys(visited)];
                             }
                             url = queue.shift();
-                            if (!(url && !visited[url])) return [3 /*break*/, 6];
+                            if (!(url && !visited[url])) return [3 /*break*/, 5];
                             visited[url] = true;
                             console.log(url);
-                            return [4 /*yield*/, page.goto(url, {
-                                    timeout: 60 * 1000
-                                })];
+                            html = '';
+                            _a.label = 1;
+                        case 1:
+                            _a.trys.push([1, 3, , 4]);
+                            return [4 /*yield*/, rp(url)];
+                        case 2:
+                            html = _a.sent();
+                            return [3 /*break*/, 4];
+                        case 3:
+                            e_1 = _a.sent();
+                            return [3 /*break*/, 4];
                         case 4:
-                            _a.sent();
-                            return [4 /*yield*/, page.$$eval('[href]', function (els) { return els.map(function (el) { return el.href; }); })];
-                        case 5:
-                            hrefs = _a.sent();
-                            hrefs.forEach(function (href) {
+                            $ = cheerio.load(html);
+                            els = $('[href]').toArray().forEach(function (el) {
+                                var href = el.attribs['href'];
                                 if (href && typeof href === 'string' && href.match(/^http*/)) {
                                     console.log('  ' + href);
                                     queue.push(href);
@@ -92,9 +92,9 @@ function main(stopAfter, startUrl) {
                             if (cralwerIndex === 0 && crawlerCount < crawlerMaxCount) {
                                 eventEmitter.emit('go');
                             }
-                            _a.label = 6;
-                        case 6: return [3 /*break*/, 3];
-                        case 7: return [2 /*return*/];
+                            _a.label = 5;
+                        case 5: return [3 /*break*/, 0];
+                        case 6: return [2 /*return*/];
                     }
                 });
             }); };
